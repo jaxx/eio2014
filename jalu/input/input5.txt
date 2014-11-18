@@ -1,0 +1,11 @@
+10
+10s kiirusega 2m0s/km
+10s kiirusega 2m5s/km
+10s kiirusega 2m10s/km
+10s kiirusega 2m15s/km
+10s kiirusega 2m20s/km
+10s kiirusega 2m25s/km
+10s kiirusega 2m30s/km
+10s kiirusega 2m35s/km
+10s kiirusega 2m40s/km
+10s kiirusega 2m45s/km

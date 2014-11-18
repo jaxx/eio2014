@@ -1,0 +1,4 @@
+3
+14m59s kiirusega 25m1s/km
+15m0s kiirusega 25m0s/km
+15m1s kiirusega 24m59s/km
