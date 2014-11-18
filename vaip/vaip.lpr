@@ -50,22 +50,61 @@ type
     Result := (Vaip.B.X - Vaip.A.X) * (Vaip.B.Y - Vaip.A.Y);
   end;
 
-  function AnnaVaipadeYhinePindala(Vaip1, Vaip2: TVaip): int64;
+  function KasOnKattuvadVaibad(const Vaip1, Vaip2: TVaip): boolean;
   var
     KattuvX, KattuvY: int64;
   begin
+    Result := False;
+
     KattuvX := Max(0, Min(Vaip1.B.X, Vaip2.B.X) - Max(Vaip1.A.X, Vaip2.A.X));
     KattuvY := Max(0, Min(Vaip1.B.Y, Vaip2.B.Y) - Max(Vaip1.A.Y, Vaip2.A.Y));
 
-    Result := KattuvX * KattuvY;
+    if (KattuvX > 0) and (KattuvY > 0) then
+      Result := True;
+  end;
+
+  function AnnaKattuvOsa(const Vaip1, Vaip2: TVaip): TVaip;
+  begin
+    Result.A.X := Max(Vaip1.A.X, Vaip2.A.X);
+    Result.A.Y := Max(Vaip1.A.Y, Vaip2.A.Y);
+    Result.B.X := Min(Vaip1.B.X, Vaip2.B.X);
+    Result.B.Y := Min(Vaip1.B.Y, Vaip2.B.Y);
+  end;
+
+  procedure LisaKattuvadOsad(KattuvOsa: TVaip; var KattuvadOsad: TVaipArray);
+  var
+    I: integer;
+    PeabLisama: boolean;
+  begin
+    PeabLisama := True;
+
+    for I := 0 to High(KattuvadOsad) do
+    begin
+      if (KattuvOsa.A.X = KattuvadOsad[I].A.X) and (KattuvOsa.A.Y =
+        KattuvadOsad[I].A.Y) and (KattuvOsa.B.X = KattuvadOsad[I].B.X) and
+        (KattuvOsa.B.Y = KattuvadOsad[I].B.Y) then
+        PeabLisama := False;
+    end;
+
+    if PeabLisama then
+    begin
+      SetLength(KattuvadOsad, Length(KattuvadOsad) + 1);
+      KattuvadOsad[High(KattuvadOsad)] := KattuvOsa;
+    end;
   end;
 
   function AnnaVaipadegaKaetudPindala(Vaibad: TVaipArray): int64;
   var
     I, J: integer;
-    KoguPindala, KattuvPindala: int64;
+    KoguPindala: int64;
+    KattuvadOsad: TVaipArray;
   begin
-    KattuvPindala := 0;
+    if not Assigned(Vaibad) then
+    begin
+      Result := 0;
+      Exit;
+    end;
+
     KoguPindala := AnnaVaibaPindala(Vaibad[High(Vaibad)]);
 
     for I := 0 to High(Vaibad) - 1 do
@@ -74,11 +113,12 @@ type
 
       for J := I + 1 to High(Vaibad) do
       begin
-        KattuvPindala := KattuvPindala + AnnaVaipadeYhinePindala(Vaibad[I], Vaibad[J]);
+        if KasOnKattuvadVaibad(Vaibad[I], Vaibad[J]) then
+          LisaKattuvadOsad(AnnaKattuvOsa(Vaibad[I], Vaibad[J]), KattuvadOsad);
       end;
     end;
 
-    Result := KoguPindala - KattuvPindala;
+    Result := KoguPindala - AnnaVaipadegaKaetudPindala(KattuvadOsad);
   end;
 
 var
@@ -90,7 +130,7 @@ var
 
 begin
   try
-    AssignFile(Fail, 'input/input11.txt');
+    AssignFile(Fail, 'vaipsis.txt');
     Reset(Fail);
 
     ReadLn(Fail, Rida);
@@ -105,7 +145,7 @@ begin
   end;
 
   try
-    AssignFile(Fail, 'output/output.txt');
+    AssignFile(Fail, 'vaipval.txt');
     Rewrite(Fail);
 
     WriteLn(Fail, AnnaVaipadegaKaetudPindala(Vaibad));
