@@ -8,24 +8,21 @@ uses
   Classes;
 
 type
-
-  { TTipp }
-
-  PTipp = ^TTipp;
-
   TTipp = class(TObject)
   private
     FTipuVaartus: smallint;
     FYlem: TTipp;
     FAlluvad: TList;
   public
-    property TipuVaartus: smallint read FTipuVaartus write FTipuVaartus;
+    property TipuVaartus: smallint read FTipuVaartus;
     property Ylem: TTipp read FYlem;
     property Alluvad: TList read FAlluvad;
 
     constructor Create(Vaartus: smallint);
     destructor Destroy; override;
     procedure LisaAlluv(Alluv: TTipp);
+    procedure EemaldaAlluv(TippPtr: Pointer);
+    procedure EemaldaYlem;
   end;
 
   { TTipp }
@@ -37,13 +34,9 @@ type
   end;
 
   destructor TTipp.Destroy;
-  var
-    I: smallint;
   begin
-    for I := 0 to FAlluvad.Count - 1 do
-      TTipp(FAlluvad[I]).Free;
-
     FAlluvad.Free;
+
     inherited Destroy;
   end;
 
@@ -53,23 +46,19 @@ type
     FAlluvad.Add(Alluv);
   end;
 
-  {-------------------------------------------------------------------------------------}
-  {-------------------------------------------------------------------------------------}
-
-  function LeiaTipp(TipuVaartus: smallint; AlgusTipp: TTipp): TTipp;
-  var
-    I: integer;
+  procedure TTipp.EemaldaYlem;
   begin
-    if AlgusTipp.TipuVaartus = TipuVaartus then
-      Result := AlgusTipp
-    else
-    begin
-      for I := 0 to AlgusTipp.Alluvad.Count - 1 do
-      begin
-        Result := LeiaTipp(TipuVaartus, TTipp(AlgusTipp.Alluvad[I]));
-      end;
-    end;
+    Self.FYlem.FAlluvad.Remove(Self);
+    Self.FYlem := nil;
   end;
+
+  procedure TTipp.EemaldaAlluv(TippPtr: Pointer);
+  begin
+    FAlluvad.Remove(TippPtr);
+  end;
+
+  {-------------------------------------------------------------------------------------}
+  {-------------------------------------------------------------------------------------}
 
   procedure LoeAlluvad(PuuAlgmaterjal: array of string; var Ylem: TTipp);
   var
@@ -105,6 +94,137 @@ type
     LoeAlluvad(PuuAlgmaterjal, Result);
   end;
 
+  function LeiaTipp(AlguseTipp: TTipp; TipuVaartus: smallint): TTipp;
+  var
+    I: smallint;
+  begin
+    Result := nil;
+
+    if AlguseTipp.TipuVaartus = TipuVaartus then
+      Result := AlguseTipp
+    else
+    begin
+      for I := 0 to AlguseTipp.Alluvad.Count - 1 do
+      begin
+        Result := LeiaTipp(TTipp(AlguseTipp.Alluvad[I]), TipuVaartus);
+
+        if Assigned(Result) then
+          Break;
+      end;
+    end;
+  end;
+
+  function AnnaAsukohtNaabriteHulgas(YlemTipp: TTipp; TipuVaartus: smallint): smallint;
+  var
+    I: smallint;
+  begin
+    Result := -1;
+
+    for I := 0 to YlemTipp.Alluvad.Count - 1 do
+    begin
+      if (TTipp(YlemTipp.Alluvad[I]).TipuVaartus = TipuVaartus) and
+        (I > 0) {and (I <> YlemTipp.Alluvad.Count - 1)} then
+      begin
+        Result := I;
+        Break;
+      end;
+    end;
+  end;
+
+  procedure MuudaNaabritePositsioonid(var YlemTipp: TTipp; TipuAsukoht: smallint);
+  var
+    Pos: smallint;
+    TempTipp: TTipp;
+  begin
+    Pos := 0;
+
+    repeat
+      TempTipp := TTipp(YlemTipp.Alluvad[0]);
+      YlemTipp.EemaldaAlluv(YlemTipp.Alluvad[0]);
+      YlemTipp.LisaAlluv(TempTipp);
+
+      Inc(Pos);
+    until Pos = TipuAsukoht;
+  end;
+
+  procedure SatiAlluvad(var Tipp: TTipp);
+  var
+    YlemTipp: TTipp;
+  begin
+    YlemTipp := Tipp.Ylem;
+
+    if not Assigned(YlemTipp) then
+      Exit;
+
+    SatiAlluvad(YlemTipp);
+
+    Tipp.EemaldaYlem;
+    Tipp.LisaAlluv(YlemTipp);
+  end;
+
+  function MuudaJuurikat(var JuurTipp: TTipp; UueJuurikaVaartus: smallint): TTipp;
+  var
+    YlemTipp: TTipp;
+    TipuAsukoht: smallint;
+  begin
+    Result := LeiaTipp(JuurTipp, UueJuurikaVaartus);
+    YlemTipp := Result.Ylem;
+
+    if not Assigned(YlemTipp) then
+      Exit;
+
+    TipuAsukoht := AnnaAsukohtNaabriteHulgas(YlemTipp, UueJuurikaVaartus);
+
+    SatiAlluvad(Result);
+
+    if TipuAsukoht <> -1 then
+      MuudaNaabritePositsioonid(YlemTipp, TipuAsukoht);
+
+    //SatiAlluvad(Result);
+  end;
+
+  procedure VabastaAlluvad(Tipp: TTipp);
+  var
+    I: smallint;
+    Alluv: TTipp;
+  begin
+    for I := 0 to Tipp.Alluvad.Count - 1 do
+    begin
+      Alluv := TTipp(Tipp.Alluvad[I]);
+      VabastaAlluvad(Alluv);
+
+      Alluv.Free;
+    end;
+  end;
+
+  procedure PrindiPuuFaili(Puu: TTipp; TippudeArv: smallint; Fail: string);
+  var
+    Read: TStringList;
+    LeitudTipp: TTipp;
+    I, J: smallint;
+    Rida: string;
+  begin
+    Read := TStringList.Create;
+
+    try
+      for I := 1 to TippudeArv do
+      begin
+        LeitudTipp := LeiaTipp(Puu, I);
+
+        Rida := Format('%d', [LeitudTipp.Alluvad.Count]);
+
+        for J := 0 to LeitudTipp.Alluvad.Count - 1 do
+          Rida := Rida + Format(' %d', [TTipp(LeitudTipp.Alluvad[J]).TipuVaartus]);
+
+        Read.Add(Rida);
+      end;
+
+      Read.SaveToFile(Fail);
+    finally
+      Read.Free;
+    end;
+  end;
+
 var
   Fail: TextFile;
   Rida: string;
@@ -113,7 +233,7 @@ var
 
 begin
   try
-    AssignFile(Fail, 'input/input15.txt');
+    AssignFile(Fail, 'input/input9.txt');
     Reset(Fail);
 
     ReadLn(Fail, Rida);
@@ -126,13 +246,9 @@ begin
     CloseFile(Fail);
   end;
 
-  try
-    AssignFile(Fail, 'output/output.txt');
-    Rewrite(Fail);
+  Ounapuu := MuudaJuurikat(Ounapuu, UusJuurTipp);
+  PrindiPuuFaili(Ounapuu, TippeKokku, 'output/output.txt');
 
-    WriteLn(Fail, 'Pole veel midagi kirjutada.');
-  finally
-    CloseFile(Fail);
-    Ounapuu.Free;
-  end;
+  VabastaAlluvad(Ounapuu);
+  Ounapuu.Free;
 end.
