@@ -105,7 +105,7 @@ var
 
 begin
   try
-    AssignFile(Fail, 'input/input0.txt');
+    AssignFile(Fail, 'input/input15.txt');
     Reset(Fail);
 
     ReadLn(Fail, Rida);
