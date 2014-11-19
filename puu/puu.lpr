@@ -71,36 +71,44 @@ type
     end;
   end;
 
-  function EhitaPuu(var Fail: TextFile): TTipp;
+  procedure LoeAlluvad(PuuAlgmaterjal: array of string; var Ylem: TTipp);
   var
     Rida: string;
-    I, TipuLugeja, AlluvateArv: smallint;
-    LeitudTipp: TTipp;
+    I, OtsitavRida, AlluvateArv: smallint;
+    Alluv: TTipp;
   begin
-    TipuLugeja := 1;
-    Result := TTipp.Create(TipuLugeja);
+    OtsitavRida := Ylem.TipuVaartus;
+    Rida := PuuAlgmaterjal[OtsitavRida - 1];
 
-    repeat
-      ReadLn(Fail, Rida);
+    AlluvateArv := StrToInt(ExtractWord(1, Rida, [' ']));
 
-      AlluvateArv := StrToInt(ExtractWord(1, Rida, [' ']));
+    for I := 1 to AlluvateArv do
+    begin
+      Alluv := TTipp.Create(StrToInt(ExtractWord(I + 1, Rida, [' '])));
+      LoeAlluvad(PuuAlgmaterjal, Alluv);
 
-      if AlluvateArv = 0 then
-        Continue;
+      Ylem.LisaAlluv(Alluv);
+    end;
+  end;
 
-      LeitudTipp := LeiaTipp(TipuLugeja, Result);
+  function EhitaPuu(var Fail: TextFile; const TippeKokku: smallint): TTipp;
+  var
+    I: smallint;
+    PuuAlgmaterjal: array of string;
+  begin
+    SetLength(PuuAlgmaterjal, TippeKokku);
 
-      for I := 1 to AlluvateArv do
-        LeitudTipp.LisaAlluv(TTipp.Create(StrToInt(ExtractWord(I + 1, Rida, [' ']))));
+    for I := 0 to TippeKokku - 1 do
+      ReadLn(Fail, PuuAlgmaterjal[I]);
 
-      Inc(TipuLugeja);
-    until EOF(Fail);
+    Result := TTipp.Create(1);
+    LoeAlluvad(PuuAlgmaterjal, Result);
   end;
 
 var
   Fail: TextFile;
   Rida: string;
-  UusJuurTipp: smallint;
+  TippeKokku, UusJuurTipp: smallint;
   Ounapuu: TTipp;
 
 begin
@@ -110,8 +118,10 @@ begin
 
     ReadLn(Fail, Rida);
 
+    TippeKokku := StrToInt(ExtractWord(1, Rida, [' ']));
     UusJuurTipp := StrToInt(ExtractWord(2, Rida, [' ']));
-    Ounapuu := EhitaPuu(Fail);
+
+    Ounapuu := EhitaPuu(Fail, TippeKokku);
   finally
     CloseFile(Fail);
   end;
